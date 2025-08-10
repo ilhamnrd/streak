@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Streak Timer</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#ff6b35;--muted:#94a3b8}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071028 0%,#0b1220 100%);font-family:Inter,ui-sans-serif,system-ui,Arial}
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:32px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:28px;border-radius:16px;box-shadow:0 8px 30px rgba(2,6,23,0.6);width:380px;color:#e6eef8;transition:transform 0.3s ease}
+    .timer{font-size:28px;text-align:center;font-weight:600;margin-bottom:10px}
+    .sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:18px}
+    .fire-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:14px}
+    .flame{width:120px;height:120px;display:flex;align-items:center;justify-content:center;animation:flameMove 1.5s ease-in-out infinite}
+    @keyframes flameMove{0%,100%{transform:rotate(0deg)}50%{transform:rotate(4deg)}}
+    .pulse{animation:pulse 1.2s ease-in-out infinite}
+    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+    .streak-number{font-size:48px;font-weight:700;color:var(--accent);text-align:center}
+    .controls{display:flex;gap:10px;justify-content:center;margin-top:16px}
+    button{background:transparent;border:1px solid rgba(255,255,255,0.08);padding:8px 12px;border-radius:10px;color:#e6eef8;cursor:pointer;font-weight:600;transition:all 0.2s ease;transform:perspective(500px) translateZ(0)}
+    button.primary{background:linear-gradient(90deg,#ff8a4a,#ff4d6d);border:none;color:white}
+    button:active{transform:perspective(500px) translateZ(10px) scale(0.95);box-shadow:0 4px 15px rgba(0,0,0,0.4)}
+    .hint{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <div class="timer" id="timer">00:00:00</div>
+      <div class="sub">Waktu sejak start</div>
+
+      <div class="fire-wrap">
+        <div class="flame" id="flame">
+          <svg viewBox="0 0 64 64" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="g1" cx="30%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#fff59b" />
+                <stop offset="60%" stop-color="#ffb86b" />
+                <stop offset="100%" stop-color="#ff6b35" />
+              </radialGradient>
+            </defs>
+            <path fill="url(#g1)" d="M32 6c-6.5 6-9 10-9 17 0 8 6 14 9 19 3-5 9-11 9-19 0-7-3.5-11-9-17z"/>
+            <path fill="#ff3d00" d="M22 28c0-10 10-16 10-22 4 5 8 9 8 17 0 8-6 14-9 19-4-5-9-7-9-14z" opacity="0.2"/>
+          </svg>
+        </div>
+        <div class="streak-number" id="streak">0</div>
+        <div class="sub">Streak bertambah tiap 24 jam</div>
+      </div>
+
+      <div class="controls">
+        <button id="resetBtn">Reset</button>
+        <button id="startBtn" class="primary">Start</button>
+      </div>
+
+      <div class="hint">Data tersimpan di browser (localStorage).</div>
+    </div>
+  </div>
+
+  <audio id="streakSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3" preload="auto"></audio>
+
+  <script>
+    const timerEl = document.getElementById('timer');
+    const streakEl = document.getElementById('streak');
+    const flameEl = document.getElementById('flame');
+    const resetBtn = document.getElementById('resetBtn');
+    const startBtn = document.getElementById('startBtn');
+    const streakSound = document.getElementById('streakSound');
+
+    const KEY_START = 'timerStart';
+    let lastStreak = 0;
+
+    function getStart(){
+      const val = localStorage.getItem(KEY_START);
+      return val ? new Date(val) : null;
+    }
+
+    function setStart(date){
+      localStorage.setItem(KEY_START, date.toISOString());
+    }
+
+    function reset(){
+      localStorage.removeItem(KEY_START);
+      streakEl.textContent = '0';
+      timerEl.textContent = '00:00:00';
+      lastStreak = 0;
+    }
+
+    function update(){
+      const start = getStart();
+      if(!start) return;
+      const now = new Date();
+      const diff = now - start;
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      timerEl.textContent = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+      const days = Math.floor(diff / (24*60*60*1000));
+      if (days > lastStreak) {
+        streakSound.play();
+        flameEl.classList.add('pulse');
+        setTimeout(()=>flameEl.classList.remove('pulse'),1500);
+      }
+      lastStreak = days;
+      streakEl.textContent = days;
+    }
+
+    startBtn.addEventListener('click',()=>{
+      setStart(new Date());
+      lastStreak = 0;
+    });
+
+    resetBtn.addEventListener('click',()=>{
+      reset();
+    });
+
+    setInterval(update,1000);
+  </script>
+</body>
+</html>
